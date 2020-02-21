@@ -46,10 +46,25 @@ func readFile(filename string) ([]byte, error) {
 }
 
 func (cat *Categories) getCategories(data []byte) error {
-	err := xml.NewDecoder(strings.NewReader(string(data))).Decode(&cat)
-	if err != nil {
-		return err
+	decoder := xml.NewDecoder(strings.NewReader(string(data)))
+	for {
+		t, _ := decoder.Token()
+		if t == nil {
+			break;
+		}
+
+		switch se := t.(type) {
+		case xml.StartElement:
+			if se.Name.Local == "categories" {
+				err := decoder.Decode(&cat.category)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+
+		} 
 	}
+
 
 	return nil
 }
