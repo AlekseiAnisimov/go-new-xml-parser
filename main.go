@@ -4,11 +4,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-	//"encoding/xml"
+	"strings"
 )
 
 type Categories struct {
-	XMLName xml.Name `xml:"categorties"`
+	XMLName xml.Name `xml:"categories"`
 	category []Category
 }
 
@@ -28,7 +28,10 @@ func main() {
 		fmt.Print(err)
 	}
 
-	cat.getCategories(data)
+	err = cat.getCategories(data)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	fmt.Println(cat)
 }
@@ -43,7 +46,7 @@ func readFile(filename string) ([]byte, error) {
 }
 
 func (cat *Categories) getCategories(data []byte) error {
-	err := xml.Unmarshal(data, cat)
+	err := xml.NewDecoder(strings.NewReader(string(data))).Decode(&cat)
 	if err != nil {
 		return err
 	}
