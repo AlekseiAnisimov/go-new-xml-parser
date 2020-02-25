@@ -1,2 +1,4 @@
 .idea/
 alidump.yml
+dbconfig.yml
+sql-migrate
