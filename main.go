@@ -8,14 +8,13 @@ import (
 )
 
 type Categories struct {
-	XMLName xml.Name `xml:"categories"`
-	category []Category
+	XMLName  xml.Name   `xml:"categories"`
+	Category []Category `xml:"category"`
 }
 
 type Category struct {
-	XMLName xml.Name `xml:"category"`
-	Id int8 `xml:"id,attr"`
-	Desc string `xml:"category"`
+	Id    string `xml:"id,attr"`
+	Value string `xml:",chardata"`
 }
 
 func main() {
@@ -37,7 +36,7 @@ func main() {
 }
 
 func readFile(filename string) ([]byte, error) {
-	data, err := ioutil.ReadFile(filename);
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -50,21 +49,19 @@ func (cat *Categories) getCategories(data []byte) error {
 	for {
 		t, _ := decoder.Token()
 		if t == nil {
-			break;
+			break
 		}
 
 		switch se := t.(type) {
 		case xml.StartElement:
 			if se.Name.Local == "categories" {
-				err := decoder.Decode(&cat.category)
+				err := decoder.DecodeElement(&cat, &se)
 				if err != nil {
 					fmt.Println(err)
 				}
 			}
-
-		} 
+		}
 	}
-
 
 	return nil
 }
