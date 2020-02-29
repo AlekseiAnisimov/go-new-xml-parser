@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	"github.com/go-ozzo/ozzo-dbx"
@@ -17,7 +18,7 @@ type Categories struct {
 }
 
 type Category struct {
-	Id    string `xml:"id,attr"`
+	Id    int    `xml:"id,attr"`
 	Value string `xml:",chardata"`
 }
 
@@ -78,7 +79,8 @@ func main() {
 	_ = yaml.Unmarshal(dbParamsFile, &dbd)
 
 	db, _ := dbx.Open(dbd.Development.Dialect, dbd.Development.Datasource)
-	fmt.Println(db)
+	//fmt.Println(db)
+	cat.saveCategories(db)
 }
 
 func readFile(filename string) ([]byte, error) {
@@ -132,4 +134,33 @@ func (off *Offers) getOffers(data []byte) error {
 	}
 
 	return nil
+}
+
+func (cat *Categories) saveCategories(db *dbx.DB) {
+	var batchInsert strings.Builder
+
+	if len(cat.Category) == 0 {
+		panic("Category struct is empty")
+	}
+
+	for _, value := range cat.Category {
+		batchInsert.WriteString(fmt.Sprintf("(%d,%s),", value.Id, strconv.Quote(value.Value)))
+	}
+
+	_, err := db.NewQuery("INSERT INTO categories_bck SELECT * FROM categories").Execute()
+	if err != nil {
+		panic(err)
+	}
+
+	_, _ = db.TruncateTable("categories").Execute()
+
+	batchInsertFmt := batchInsert.String()
+	batchInsertFmt = batchInsertFmt[:len(batchInsertFmt)-1]
+
+	res, err := db.NewQuery("INSERT INTO categories(id, description) VALUE" + batchInsertFmt).Execute()
+	if err != nil {
+		_, _ = db.NewQuery("INSERT INTO categories SELECT * FROM categories_bck").Execute()
+	}
+	_, _ = db.TruncateTable("categories_bck").Execute()
+	fmt.Println(res)
 }
