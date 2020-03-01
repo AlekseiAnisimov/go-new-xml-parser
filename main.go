@@ -29,7 +29,7 @@ type Offers struct {
 
 type Offer struct {
 	Id          string  `xml:"id, attr"`
-	Available   string  `xml:"available, attr"`
+	Available   bool    `xml:"available, attr"`
 	CategoryId  int     `xml:"categoryId"`
 	Category    string  `xml:"category"`
 	Name        string  `xml:"name"`
@@ -79,8 +79,9 @@ func main() {
 	_ = yaml.Unmarshal(dbParamsFile, &dbd)
 
 	db, _ := dbx.Open(dbd.Development.Dialect, dbd.Development.Datasource)
-	//fmt.Println(db)
+
 	cat.saveCategories(db)
+	//off.saveOffers(db)
 }
 
 func readFile(filename string) ([]byte, error) {
@@ -162,5 +163,37 @@ func (cat *Categories) saveCategories(db *dbx.DB) {
 		_, _ = db.NewQuery("INSERT INTO categories SELECT * FROM categories_bck").Execute()
 	}
 	_, _ = db.TruncateTable("categories_bck").Execute()
+	fmt.Println(res)
+}
+
+func (off *Offers) saveOffers(db *dbx.DB) {
+	var batchInsert strings.Builder
+
+	if len(off.Offer) == 0 {
+		panic("Offer struct is empty")
+	}
+
+	for _, value := range off.Offer {
+		batchInsert.WriteString(fmt.Sprintf("(%d,%d,%d,%s,%s,%s,%s,%v,%s,%s),", value.Id, value.Available, value.CategoryId, strconv.Quote(value.Category),
+			strconv.Quote(value.Name), strconv.Quote(value.Description), strconv.Quote(value.Picture), value.Price, value.CurrencyId, strconv.Quote(value.Url)))
+	}
+
+	_, err := db.NewQuery("INSERT INTO offers_bck SELECT * FROM offers").Execute()
+	if err != nil {
+		panic(err)
+	}
+
+	_, _ = db.TruncateTable("offers").Execute()
+
+	batchInsertFmt := batchInsert.String()
+	batchInsertFmt = batchInsertFmt[:len(batchInsertFmt)-1]
+
+	res, err := db.NewQuery("INSERT INTO offers(id, available, category_id, category, name, description, picture, price, " +
+		", cuurency_id, url) VALUE" + batchInsertFmt).Execute()
+	if err != nil {
+		_, _ = db.NewQuery("INSERT INTO offers SELECT * FROM offers_bck").Execute()
+		fmt.Println(err)
+	}
+	_, _ = db.TruncateTable("offers_bck").Execute()
 	fmt.Println(res)
 }
