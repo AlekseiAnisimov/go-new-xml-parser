@@ -146,10 +146,11 @@ func (cat *Categories) saveCategories(db *dbx.DB) {
 	}
 
 	for _, value := range cat.Category {
-		batchInsert.WriteString(fmt.Sprintf("(%d,%s),", value.Id, strconv.Quote(value.Value)))
+		str := strings.Replace(value.Value, "'", "&apos;", -1)
+		batchInsert.WriteString(fmt.Sprintf(` SELECT %d, '%s' UNION`, value.Id, str))
 	}
 
-	_, err := db.NewQuery("INSERT INTO categories_bck SELECT * FROM categories").Execute()
+	_, err := db.NewQuery(`INSERT INTO categories_bck SELECT * FROM categories`).Execute()
 	if err != nil {
 		panic(err)
 	}
@@ -157,11 +158,12 @@ func (cat *Categories) saveCategories(db *dbx.DB) {
 	_, _ = db.TruncateTable("categories").Execute()
 
 	batchInsertFmt := batchInsert.String()
-	batchInsertFmt = batchInsertFmt[:len(batchInsertFmt)-1]
+	batchInsertFmt = batchInsertFmt[:len(batchInsertFmt)-5]
 
-	res, err := db.NewQuery("INSERT INTO categories(id, description) VALUE" + batchInsertFmt).Execute()
+	res, err := db.NewQuery(`INSERT INTO categories(id, description) ` + batchInsertFmt).Execute()
 	if err != nil {
 		_, _ = db.NewQuery("INSERT INTO categories SELECT * FROM categories_bck").Execute()
+		fmt.Println(err)
 	}
 	_, _ = db.TruncateTable("categories_bck").Execute()
 	fmt.Println(res)
