@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/go-ozzo/ozzo-dbx"
-	_ "github.com/go-sql-driver/mysql"
+	//_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jinzhu/gorm/dialects/mssql"
 	"gopkg.in/yaml.v3"
 )
 

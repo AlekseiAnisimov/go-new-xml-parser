@@ -1,9 +1,9 @@
 
 -- +migrate Up
 	CREATE TABLE offers (
-		id integer(11),
-		available tinyint(1),
-		category_id integer(11),
+		id int,
+		available tinyint,
+		category_id int,
 		category varchar(255),
 		name text,
 		description text,
@@ -11,13 +11,13 @@
 		price float,
 		currency_id varchar(5), 
 		url varchar(255),
-		UNIQUE KEY ix_id (id)
+		CONSTRAINT ix_id UNIQUE(id)
 	);
 	
 	CREATE TABLE offers_bck (
-		id integer(11),
-		available tinyint(1),
-		category_id integer(11),
+		id int,
+		available tinyint,
+		category_id int,
 		category varchar(255),
 		name text,
 		description text,
@@ -25,7 +25,7 @@
 		price float,
 		currency_id varchar(5), 
 		url varchar(255),
-		UNIQUE KEY ix_id (id)
+		CONSTRAINT ixbck_id UNIQUE(id)
 	);
 -- +migrate Down
 	DROP TABLE offers;
