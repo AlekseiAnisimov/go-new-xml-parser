@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-	"strconv"
 	"strings"
 
 	"github.com/go-ozzo/ozzo-dbx"
@@ -29,7 +28,7 @@ type Offers struct {
 }
 
 type Offer struct {
-	Id          string  `xml:"id, attr"`
+	Id          int     `xml:"id, attr"`
 	Available   bool    `xml:"available, attr"`
 	CategoryId  int     `xml:"categoryId"`
 	Category    string  `xml:"category"`
@@ -82,7 +81,7 @@ func main() {
 	db, _ := dbx.Open(dbd.Development.Dialect, dbd.Development.Datasource)
 
 	cat.saveCategories(db)
-	//off.saveOffers(db)
+	off.saveOffers(db)
 }
 
 func readFile(filename string) ([]byte, error) {
@@ -171,17 +170,27 @@ func (cat *Categories) saveCategories(db *dbx.DB) {
 
 func (off *Offers) saveOffers(db *dbx.DB) {
 	var batchInsert strings.Builder
+	var description string
 
 	if len(off.Offer) == 0 {
 		panic("Offer struct is empty")
 	}
 
 	for _, value := range off.Offer {
-		batchInsert.WriteString(fmt.Sprintf("(%d,%d,%d,%s,%s,%s,%s,%v,%s,%s),", value.Id, value.Available, value.CategoryId, strconv.Quote(value.Category),
-			strconv.Quote(value.Name), strconv.Quote(value.Description), strconv.Quote(value.Picture), value.Price, value.CurrencyId, strconv.Quote(value.Url)))
+		if value.Description == "" {
+			description = "null"
+		} else {
+			description = value.Description
+		}
+		picture := value.Picture
+		category := strings.Replace(value.Category, "'", "&apos;", -1)
+		name := strings.Replace(value.Name, "'", "&apos;", -1)
+
+		batchInsert.WriteString(fmt.Sprintf(" SELECT %d,'%t',%d,'%s','%s','%s','%s','%v','%s','%s' UNION", value.Id, value.Available, value.CategoryId, category,
+			name, description, picture, value.Price, value.CurrencyId, value.Url))
 	}
 
-	_, err := db.NewQuery("INSERT INTO offers_bck SELECT * FROM offers").Execute()
+	_, err := db.NewQuery(`INSERT INTO offers_bck SELECT * FROM offers`).Execute()
 	if err != nil {
 		panic(err)
 	}
@@ -189,14 +198,17 @@ func (off *Offers) saveOffers(db *dbx.DB) {
 	_, _ = db.TruncateTable("offers").Execute()
 
 	batchInsertFmt := batchInsert.String()
-	batchInsertFmt = batchInsertFmt[:len(batchInsertFmt)-1]
+	batchInsertFmt = batchInsertFmt[:len(batchInsertFmt)-5]
 
-	res, err := db.NewQuery("INSERT INTO offers(id, available, category_id, category, name, description, picture, price, " +
-		", cuurency_id, url) VALUE" + batchInsertFmt).Execute()
+	str := `INSERT INTO offers(id, available, category_id, category, name, description, picture, price, ` +
+		` currency_id, url) ` + batchInsertFmt
+
+	res, err := db.NewQuery(str).Execute()
+
 	if err != nil {
-		_, _ = db.NewQuery("INSERT INTO offers SELECT * FROM offers_bck").Execute()
+		//_, _ = db.NewQuery(`INSERT INTO offers SELECT * FROM offers_bck`).Execute()
 		fmt.Println(err)
 	}
-	_, _ = db.TruncateTable("offers_bck").Execute()
+	//_, _ = db.TruncateTable("offers_bck").Execute()
 	fmt.Println(res)
 }
