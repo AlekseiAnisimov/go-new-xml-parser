@@ -171,23 +171,10 @@ func (cat *Categories) saveCategories(db *dbx.DB) {
 func (off *Offers) saveOffers(db *dbx.DB) {
 	var batchInsert strings.Builder
 	var description string
+	var available int
 
 	if len(off.Offer) == 0 {
 		panic("Offer struct is empty")
-	}
-
-	for _, value := range off.Offer {
-		if value.Description == "" {
-			description = "null"
-		} else {
-			description = value.Description
-		}
-		picture := value.Picture
-		category := strings.Replace(value.Category, "'", "&apos;", -1)
-		name := strings.Replace(value.Name, "'", "&apos;", -1)
-
-		batchInsert.WriteString(fmt.Sprintf(" SELECT %d,'%t',%d,'%s','%s','%s','%s','%v','%s','%s' UNION", value.Id, value.Available, value.CategoryId, category,
-			name, description, picture, value.Price, value.CurrencyId, value.Url))
 	}
 
 	_, err := db.NewQuery(`INSERT INTO offers_bck SELECT * FROM offers`).Execute()
@@ -197,18 +184,47 @@ func (off *Offers) saveOffers(db *dbx.DB) {
 
 	_, _ = db.TruncateTable("offers").Execute()
 
-	batchInsertFmt := batchInsert.String()
-	batchInsertFmt = batchInsertFmt[:len(batchInsertFmt)-5]
+	i := 0
+	for _, value := range off.Offer {
+		i++
+		if value.Description == "" {
+			description = "null"
+		} else {
+			description = value.Description
+		}
 
-	str := `INSERT INTO offers(id, available, category_id, category, name, description, picture, price, ` +
-		` currency_id, url) ` + batchInsertFmt
+		if value.Available == true {
+			available = 1
+		} else {
+			available = 0
+		}
 
-	res, err := db.NewQuery(str).Execute()
+		picture := value.Picture
+		category := strings.Replace(value.Category, "'", "&apos;", -1)
+		name := strings.Replace(value.Name, "'", "&apos;", -1)
 
-	if err != nil {
-		//_, _ = db.NewQuery(`INSERT INTO offers SELECT * FROM offers_bck`).Execute()
-		fmt.Println(err)
+		batchInsert.WriteString(fmt.Sprintf(" SELECT %d,%d,%d,'%s','%s','%s','%s','%v','%s','%s' UNION", value.Id, available, value.CategoryId, category,
+			name, description, picture, value.Price, value.CurrencyId, value.Url))
+
+		if i >= 100 {
+			batchInsertFmt := batchInsert.String()
+			batchInsertFmt = batchInsertFmt[:len(batchInsertFmt)-5]
+
+			str := `INSERT INTO offers(id, available, category_id, category, name, description, picture, price, ` +
+				` currency_id, url) ` + batchInsertFmt
+
+			res, err := db.NewQuery(str).Execute()
+
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println(res)
+			i = 0
+			batchInsert.Reset()
+			batchInsertFmt = ""
+		}
 	}
-	//_, _ = db.TruncateTable("offers_bck").Execute()
-	fmt.Println(res)
+
+	_, _ = db.TruncateTable("offers_bck").Execute()
+
 }

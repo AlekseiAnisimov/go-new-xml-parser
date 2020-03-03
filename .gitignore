@@ -1,4 +1,5 @@
 .idea/
 alidump.yml
 dbconfig.yml
+dbconfig_ms.yml
 sql-migrate

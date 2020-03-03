@@ -11,7 +11,6 @@
 		price float,
 		currency_id varchar(5), 
 		url varchar(255),
-		CONSTRAINT ix_id UNIQUE(id)
 	);
 	
 	CREATE TABLE offers_bck (
@@ -25,7 +24,6 @@
 		price float,
 		currency_id varchar(5), 
 		url varchar(255),
-		CONSTRAINT ixbck_id UNIQUE(id)
 	);
 -- +migrate Down
 	DROP TABLE offers;
