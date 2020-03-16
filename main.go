@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-ozzo/ozzo-dbx"
 	//_ "github.com/go-sql-driver/mysql"
-	//"github.com/jasonlvhit/gocron"
+	"github.com/jasonlvhit/gocron"
 	_ "github.com/jinzhu/gorm/dialects/mssql"
 	"gopkg.in/yaml.v3"
 )
@@ -49,6 +49,10 @@ type dbDevelopment struct {
 }
 
 func main() {
+	gocron.Every(1).Day().At("04:30").Do(run)
+}
+
+func run() {
 	var xmlFile string = "alidump.yml"
 	var yamlDbFile string = "dbconfig.yml"
 	var data []byte
