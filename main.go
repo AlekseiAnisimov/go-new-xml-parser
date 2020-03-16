@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-ozzo/ozzo-dbx"
 	//_ "github.com/go-sql-driver/mysql"
+	"github.com/jasonlvhit/gocron"
 	_ "github.com/jinzhu/gorm/dialects/mssql"
 	"gopkg.in/yaml.v3"
 )
@@ -48,6 +49,10 @@ type dbDevelopment struct {
 }
 
 func main() {
+	gocron.Every(1).Day().At("04:30").Do(run)
+}
+
+func run() {
 	var xmlFile string = "alidump.yml"
 	var yamlDbFile string = "dbconfig.yml"
 	var data []byte
@@ -61,15 +66,9 @@ func main() {
 		fmt.Print(err)
 	}
 
-	err = cat.getCategories(data)
-	if err != nil {
-		fmt.Println(err)
-	}
+	cat.getCategories(data)
 
-	err = off.getOffers(data)
-	if err != nil {
-		fmt.Println(err)
-	}
+	off.getOffers(data)
 
 	dbParamsFile, err := ioutil.ReadFile(yamlDbFile)
 	if err != nil {
@@ -93,7 +92,7 @@ func readFile(filename string) ([]byte, error) {
 	return data, err
 }
 
-func (cat *Categories) getCategories(data []byte) error {
+func (cat *Categories) getCategories(data []byte) {
 	decoder := xml.NewDecoder(strings.NewReader(string(data)))
 	for {
 		t, _ := decoder.Token()
@@ -112,10 +111,10 @@ func (cat *Categories) getCategories(data []byte) error {
 		}
 	}
 
-	return nil
+	return
 }
 
-func (off *Offers) getOffers(data []byte) error {
+func (off *Offers) getOffers(data []byte) {
 	decoder := xml.NewDecoder(strings.NewReader(string(data)))
 	for {
 		t, _ := decoder.Token()
@@ -134,7 +133,7 @@ func (off *Offers) getOffers(data []byte) error {
 		}
 	}
 
-	return nil
+	return
 }
 
 func (cat *Categories) saveCategories(db *dbx.DB) {
